@@ -21,6 +21,6 @@ class TopicResponse(BaseModel):
     description: str | None
     color: str
     created_at: datetime
-    podcast_count: int = 0
+    episode_count: int = 0
 
     model_config = {"from_attributes": True}

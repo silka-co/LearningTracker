@@ -80,6 +80,14 @@ def init_db() -> None:
 
     for sql_file in sorted(migrations_dir.glob("*.sql")):
         sql = sql_file.read_text()
-        conn.executescript(sql)
+        try:
+            conn.executescript(sql)
+        except sqlite3.OperationalError as e:
+            # Handle idempotent migrations (e.g. duplicate column from
+            # ALTER TABLE, which SQLite has no IF NOT EXISTS for).
+            if "duplicate column" in str(e):
+                pass
+            else:
+                raise
 
     conn.close()

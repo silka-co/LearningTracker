@@ -10,7 +10,7 @@ class Podcast(Base):
     __tablename__ = "podcasts"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    topic_id: Mapped[int] = mapped_column(Integer, ForeignKey("topics.id"), nullable=False)
+    topic_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("topics.id"), nullable=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     feed_url: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -21,7 +21,6 @@ class Podcast(Base):
         DateTime, server_default=func.now()
     )
 
-    topic: Mapped["Topic"] = relationship(back_populates="podcasts")  # noqa: F821
     episodes: Mapped[list["Episode"]] = relationship(  # noqa: F821
-        back_populates="podcast", cascade="all, delete-orphan"
+        back_populates="podcast",
     )

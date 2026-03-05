@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 16px;
+    line-height: 110%;
+    color: #10100E;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #FFFFE6;
+    border-color: #E8E8D2;
+  }
+
+  *, *::before, *::after {
+    border-color: #E8E8D2;
+  }
+
+  .font-serif {
+    font-family: 'Zodiak', Georgia, 'Times New Roman', serif;
+  }
+}

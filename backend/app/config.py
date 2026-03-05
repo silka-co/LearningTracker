@@ -1,7 +1,29 @@
+import os
 from pathlib import Path
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings
+
+
+_ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+
+
+def _load_env_file() -> dict[str, str]:
+    """Load .env file values, used to fill in empty env vars."""
+    values: dict[str, str] = {}
+    if _ENV_FILE.exists():
+        for line in _ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, val = line.partition("=")
+                values[key.strip()] = val.strip()
+    return values
+
+
+# Pre-populate empty env vars from .env so pydantic_settings picks them up
+for _k, _v in _load_env_file().items():
+    if not os.environ.get(_k):
+        os.environ[_k] = _v
 
 
 class Settings(BaseSettings):
@@ -13,7 +35,11 @@ class Settings(BaseSettings):
     # Anthropic API (Phase 3)
     ANTHROPIC_API_KEY: str = ""
 
-    # Whisper transcription (Phase 2)
+    # Transcription
+    TRANSCRIPTION_BACKEND: str = "assemblyai"  # "assemblyai" or "local"
+    ASSEMBLYAI_API_KEY: str = ""
+
+    # Local Whisper fallback (only used when TRANSCRIPTION_BACKEND=local)
     WHISPER_MODEL: str = "medium"
     WHISPER_DEVICE: str = "cpu"
     WHISPER_COMPUTE_TYPE: str = "int8"
@@ -26,7 +52,10 @@ class Settings(BaseSettings):
     # Auto-processing
     AUTO_DOWNLOAD_RECENT: int = 5
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": str(_ENV_FILE),
+        "env_file_encoding": "utf-8",
+    }
 
     @property
     def project_root(self) -> Path:

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.topic import Topic
-from app.models.podcast import Podcast
+from app.models.episode import Episode, episode_topics
 from app.schemas.topic import TopicCreate, TopicUpdate, TopicResponse
 
 router = APIRouter()
@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post("", response_model=TopicResponse, status_code=201)
 def create_topic(data: TopicCreate, db: Session = Depends(get_db)):
-    """Create a new topic for organizing podcasts."""
+    """Create a new topic for organizing episodes."""
     existing = db.query(Topic).filter(Topic.name == data.name).first()
     if existing:
         raise HTTPException(status_code=409, detail=f"Topic '{data.name}' already exists")
@@ -28,7 +28,7 @@ def create_topic(data: TopicCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=list[TopicResponse])
 def list_topics(db: Session = Depends(get_db)):
-    """List all topics with podcast counts."""
+    """List all topics with episode counts."""
     topics = db.query(Topic).order_by(Topic.name).all()
     return [_topic_to_response(t, db) for t in topics]
 
@@ -67,29 +67,38 @@ def update_topic(topic_id: int, data: TopicUpdate, db: Session = Depends(get_db)
 
 @router.delete("/{topic_id}", status_code=204)
 def delete_topic(topic_id: int, db: Session = Depends(get_db)):
-    """Delete a topic. Fails if it still has podcasts."""
+    """Delete a topic. Unassigns episodes first."""
     topic = db.get(Topic, topic_id)
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
 
-    podcast_count = db.query(func.count(Podcast.id)).filter(Podcast.topic_id == topic_id).scalar()
-    if podcast_count > 0:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot delete topic with {podcast_count} podcast(s). Remove them first.",
-        )
+    # Remove junction table entries for this topic
+    db.execute(episode_topics.delete().where(episode_topics.c.topic_id == topic_id))
+
+    # Clear legacy topic_id references
+    db.query(Episode).filter(Episode.topic_id == topic_id).update(
+        {Episode.topic_id: None}
+    )
 
     db.delete(topic)
     db.commit()
 
 
 def _topic_to_response(topic: Topic, db: Session) -> TopicResponse:
-    podcast_count = db.query(func.count(Podcast.id)).filter(Podcast.topic_id == topic.id).scalar()
+    episode_count = (
+        db.query(func.count(episode_topics.c.episode_id))
+        .join(Episode, Episode.id == episode_topics.c.episode_id)
+        .filter(
+            episode_topics.c.topic_id == topic.id,
+            Episode.trashed_at.is_(None),
+        )
+        .scalar()
+    )
     return TopicResponse(
         id=topic.id,
         name=topic.name,
         description=topic.description,
         color=topic.color,
         created_at=topic.created_at,
-        podcast_count=podcast_count,
+        episode_count=episode_count,
     )

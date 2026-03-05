@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routers import topics, podcasts, episodes, tasks
+from app.tasks.executor import init_executor, shutdown_executor
+from app.routers import topics, podcasts, episodes, tasks, qa
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,14 +26,18 @@ async def lifespan(app: FastAPI):
 
     # Ensure data directories exist
     settings.audio_dir_path.mkdir(parents=True, exist_ok=True)
-    Path(settings.HUEY_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
 
     # Initialize database (run migrations)
     init_db()
     logger.info("Database initialized at %s", settings.DATABASE_PATH)
 
+    # Start background task executor
+    init_executor(max_workers=3)
+
     yield
 
+    # Graceful shutdown
+    shutdown_executor()
     logger.info("Shutting down")
 
 
@@ -58,6 +63,7 @@ app.include_router(topics.router, prefix="/api/topics", tags=["topics"])
 app.include_router(podcasts.router, prefix="/api/podcasts", tags=["podcasts"])
 app.include_router(episodes.router, prefix="/api/episodes", tags=["episodes"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(qa.router, prefix="/api", tags=["qa"])
 
 
 @app.get("/api/health")

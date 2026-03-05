@@ -1,13 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, HttpUrl
-
-from app.schemas.topic import TopicResponse
+from pydantic import BaseModel, Field
 
 
 class PodcastCreate(BaseModel):
     feed_url: str = Field(..., min_length=1)
-    topic_id: int
 
 
 class PodcastResponse(BaseModel):
@@ -17,8 +14,8 @@ class PodcastResponse(BaseModel):
     description: str | None
     author: str | None
     image_url: str | None
-    topic: TopicResponse
     episode_count: int = 0
+    total_episode_count: int = 0
     last_fetched_at: datetime | None
     created_at: datetime
 
@@ -32,8 +29,8 @@ class PodcastListItem(BaseModel):
     description: str | None
     author: str | None
     image_url: str | None
-    topic_id: int
     episode_count: int = 0
+    total_episode_count: int = 0
     last_fetched_at: datetime | None
     created_at: datetime
 

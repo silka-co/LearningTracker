@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend backend worker frontend dev test clean
+.PHONY: setup setup-backend setup-frontend backend frontend dev test clean
 
 # Full setup
 setup: setup-backend setup-frontend dirs
@@ -21,10 +21,6 @@ dirs:
 backend:
 	cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Run Huey task worker
-worker:
-	cd backend && huey_consumer app.tasks.huey_app.huey -w 2 -k process
-
 # Run frontend dev server
 frontend:
 	cd frontend && npm run dev
@@ -33,7 +29,6 @@ frontend:
 dev:
 	@echo "Start these in separate terminals:"
 	@echo "  make backend   - API server on :8000"
-	@echo "  make worker    - Background task worker"
 	@echo "  make frontend  - React dev server on :5173"
 
 # Run tests

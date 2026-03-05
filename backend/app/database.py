@@ -60,7 +60,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def get_session() -> Session:
-    """Create a standalone session (for use in Huey tasks, outside FastAPI)."""
+    """Create a standalone session (for use in background tasks, outside FastAPI)."""
     return _get_session_factory()()
 
 

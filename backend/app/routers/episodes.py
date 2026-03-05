@@ -139,6 +139,12 @@ def list_episodes(
                 db.query(episode_topics.c.episode_id)
             )
         )
+    elif has_topic is False:
+        query = query.filter(
+            ~Episode.id.in_(
+                db.query(episode_topics.c.episode_id)
+            )
+        )
 
     if audio_status is not None:
         query = query.filter(Episode.audio_status == audio_status)

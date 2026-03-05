@@ -70,6 +70,7 @@ export interface EpisodeListItem {
   audio_status: string
   transcription_status: string
   analysis_status: string
+  created_at: string | null
   trashed_at: string | null
 }
 

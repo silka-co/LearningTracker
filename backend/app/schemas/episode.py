@@ -38,6 +38,7 @@ class EpisodeListItem(BaseModel):
     audio_status: str
     transcription_status: str
     analysis_status: str
+    created_at: datetime | None = None
     trashed_at: datetime | None = None
 
     model_config = {"from_attributes": True}

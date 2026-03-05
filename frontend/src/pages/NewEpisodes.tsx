@@ -15,10 +15,6 @@ function isPending(episode: { audio_status: string; transcription_status: string
   return episode.audio_status === 'pending' && episode.transcription_status === 'pending' && episode.analysis_status === 'pending'
 }
 
-function isFullyProcessed(episode: { audio_status: string; transcription_status: string; analysis_status: string }) {
-  return episode.audio_status === 'downloaded' && episode.transcription_status === 'completed' && episode.analysis_status === 'completed'
-}
-
 export default function NewEpisodes() {
   const [addEpisode, setAddEpisode] = useState<{ id: number; title: string } | null>(null)
   const queryClient = useQueryClient()
@@ -26,6 +22,12 @@ export default function NewEpisodes() {
   const { data: episodes, isLoading } = useQuery({
     queryKey: ['episodes', 'all'],
     queryFn: () => getEpisodes({ limit: 200 }),
+  })
+
+  // All completed (added) episodes
+  const { data: addedEpisodes, isLoading: isLoadingAdded } = useQuery({
+    queryKey: ['episodes', 'completed'],
+    queryFn: () => getEpisodes({ analysis_status: 'completed', limit: 200 }),
   })
 
   const trashMutation = useMutation({
@@ -51,16 +53,6 @@ export default function NewEpisodes() {
     [episodes, thirtyDaysAgo]
   )
 
-  // Completed episodes from the last 30 days
-  const recentlyAdded = useMemo(() =>
-    episodes?.filter((ep) => {
-      if (!ep.published_at) return false
-      if (new Date(ep.published_at) < thirtyDaysAgo) return false
-      return ep.analysis_status === 'completed'
-    }),
-    [episodes, thirtyDaysAgo]
-  )
-
   return (
     <div>
       <h1 className="font-serif font-thin text-zinc-900 mb-2" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>
@@ -68,12 +60,11 @@ export default function NewEpisodes() {
       </h1>
       <p className="text-base text-zinc-400 mb-8">
         Recent episodes from the last 30 days.
-        {' '}<Link to="/episodes" className="text-zinc-900 hover:underline">View all episodes</Link>
       </p>
 
       {/* New episodes to add */}
       <section className="mb-10">
-        <h2 className="text-xl font-semibold text-zinc-800 mb-4">New episodes to add</h2>
+        <h2 className="text-xl font-semibold text-zinc-800 mb-4">Select episode to dig into</h2>
         {isLoading ? (
           <p className="text-zinc-400 text-sm">Loading...</p>
         ) : !newEpisodes?.length ? (
@@ -127,14 +118,17 @@ export default function NewEpisodes() {
 
       {/* Episodes recently added */}
       <section className="mb-10">
-        <h2 className="text-xl font-semibold text-zinc-800 mb-4">Episodes recently added</h2>
-        {isLoading ? (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-zinc-800">Episodes recently added</h2>
+          <Link to="/episodes" className="text-[13px] text-zinc-400 hover:text-zinc-900 transition-colors">View all episodes</Link>
+        </div>
+        {isLoadingAdded ? (
           <p className="text-zinc-400 text-sm">Loading...</p>
-        ) : !recentlyAdded?.length ? (
+        ) : !addedEpisodes?.length ? (
           <p className="text-zinc-400 text-sm">No episodes added yet.</p>
         ) : (
           <div className="border divide-y">
-            {recentlyAdded.map((episode) => (
+            {addedEpisodes.map((episode) => (
               <Link
                 key={episode.id}
                 to={`/episodes/${episode.id}`}
@@ -160,6 +154,12 @@ export default function NewEpisodes() {
                     episodeId={episode.id}
                     currentTopicIds={episode.topic_ids ?? []}
                   />
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); trashMutation.mutate(episode.id) }}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-zinc-300 hover:text-zinc-900 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </Link>
             ))}

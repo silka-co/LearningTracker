@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import { getEpisodes, trashEpisode, restoreEpisode } from '../api/episodes'
+import { getPodcasts } from '../api/podcasts'
 import StatusBadge from '../components/StatusBadge'
 import TopicPicker from '../components/TopicPicker'
 import AddEpisodeModal from '../components/AddEpisodeModal'
@@ -22,17 +23,36 @@ function isPending(episode: { audio_status: string; transcription_status: string
 export default function AllEpisodes() {
   const [addEpisode, setAddEpisode] = useState<{ id: number; title: string } | null>(null)
   const [showTrashed, setShowTrashed] = useState(false)
+  const [selectedPodcastId, setSelectedPodcastId] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
+  const { data: podcasts } = useQuery({
+    queryKey: ['podcasts'],
+    queryFn: () => getPodcasts(),
+  })
+
   const { data: episodes, isLoading } = useQuery({
-    queryKey: ['episodes', 'all'],
-    queryFn: () => getEpisodes({ limit: 200 }),
+    queryKey: ['episodes', 'all', selectedPodcastId],
+    queryFn: () => getEpisodes({
+      limit: 200,
+      ...(selectedPodcastId ? { podcast_id: selectedPodcastId } : {}),
+    }),
   })
 
   const { data: trashedEpisodes } = useQuery({
     queryKey: ['episodes', 'trashed'],
     queryFn: () => getEpisodes({ trashed: true, limit: 50 }),
   })
+
+  // Sort episodes chronologically (newest first) by published_at
+  const sortedEpisodes = useMemo(() => {
+    if (!episodes) return []
+    return [...episodes].sort((a, b) => {
+      const dateA = a.published_at ? new Date(a.published_at).getTime() : 0
+      const dateB = b.published_at ? new Date(b.published_at).getTime() : 0
+      return dateB - dateA
+    })
+  }, [episodes])
 
   const trashMutation = useMutation({
     mutationFn: (episodeId: number) => trashEpisode(episodeId),
@@ -50,17 +70,39 @@ export default function AllEpisodes() {
 
   return (
     <div>
-      <h1 className="font-serif font-thin text-zinc-900 mb-8" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>
+      <h1 className="font-serif font-thin text-zinc-900 mb-4" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>
         All Episodes
       </h1>
 
+      {/* Podcast filter */}
+      {podcasts && podcasts.length > 0 && (
+        <div className="mb-6 inline-flex items-center gap-1">
+          <span className="text-[13px] text-zinc-400">Sort by:</span>
+          <div className="relative inline-block">
+          <select
+            value={selectedPodcastId ?? ''}
+            onChange={(e) => setSelectedPodcastId(e.target.value ? Number(e.target.value) : null)}
+            className="text-[13px] text-zinc-900 bg-transparent border-none outline-none appearance-none cursor-pointer px-0 py-1.5 pr-5"
+          >
+            <option value="">All podcasts</option>
+            {podcasts.map((podcast) => (
+              <option key={podcast.id} value={podcast.id}>
+                {stripEmoji(podcast.title)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-zinc-400 text-sm">Loading...</p>
-      ) : !episodes?.length ? (
+      ) : !sortedEpisodes.length ? (
         <p className="text-zinc-400 text-sm">No episodes yet.</p>
       ) : (
         <div className="border divide-y">
-          {episodes.map((episode) => (
+          {sortedEpisodes.map((episode) => (
             <Link
               key={episode.id}
               to={`/episodes/${episode.id}`}

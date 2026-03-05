@@ -30,9 +30,7 @@ class Settings(BaseSettings):
     # Paths (relative to project root, resolved at runtime)
     DATABASE_PATH: str = "data/podcast_learning.db"
     AUDIO_DIR: str = "data/audio"
-    HUEY_DB_PATH: str = "data/huey.db"
-
-    # Anthropic API (Phase 3)
+    # Anthropic API
     ANTHROPIC_API_KEY: str = ""
 
     # Transcription
@@ -70,10 +68,6 @@ class Settings(BaseSettings):
     @property
     def audio_dir_path(self) -> Path:
         return self.project_root / self.AUDIO_DIR
-
-    @property
-    def huey_db_full_path(self) -> str:
-        return str(self.project_root / self.HUEY_DB_PATH)
 
 
 @lru_cache

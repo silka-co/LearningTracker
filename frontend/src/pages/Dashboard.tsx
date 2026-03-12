@@ -57,25 +57,17 @@ export default function Dashboard() {
     queryFn: () => getPodcasts(),
   })
 
-  const { data: recentEpisodes, isLoading: loadingEpisodes } = useQuery({
-    queryKey: ['episodes', 'recent'],
-    queryFn: () => getEpisodes({ limit: 50 }),
-  })
-
   const thirtyDaysAgo = useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() - 30)
-    return d
+    return d.toISOString()
   }, [])
 
-  const newEpisodes = useMemo(() =>
-    recentEpisodes?.filter((ep) => {
-      if (!ep.published_at) return false
-      if (new Date(ep.published_at) < thirtyDaysAgo) return false
-      return ep.analysis_status !== 'completed'
-    }),
-    [recentEpisodes, thirtyDaysAgo]
-  )
+  const { data: newEpisodes, isLoading: loadingEpisodes } = useQuery({
+    queryKey: ['episodes', 'recent', thirtyDaysAgo],
+    queryFn: () => getEpisodes({ published_after: thirtyDaysAgo, limit: 200 }),
+    select: (episodes) => episodes.filter((ep) => ep.analysis_status !== 'completed'),
+  })
 
   const trashMutation = useMutation({
     mutationFn: (episodeId: number) => trashEpisode(episodeId),

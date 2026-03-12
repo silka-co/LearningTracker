@@ -110,6 +110,7 @@ def list_episodes(
     audio_status: str | None = Query(None, description="Filter by audio status"),
     transcription_status: str | None = Query(None, description="Filter by transcription status"),
     analysis_status: str | None = Query(None, description="Filter by analysis status"),
+    published_after: str | None = Query(None, description="Only episodes published after this ISO date (e.g. 2026-02-01)"),
     trashed: bool = Query(False, description="Show trashed episodes"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -154,6 +155,15 @@ def list_episodes(
 
     if analysis_status is not None:
         query = query.filter(Episode.analysis_status == analysis_status)
+
+    if published_after is not None:
+        try:
+            cutoff = datetime.fromisoformat(published_after)
+            if cutoff.tzinfo is None:
+                cutoff = cutoff.replace(tzinfo=timezone.utc)
+            query = query.filter(Episode.published_at >= cutoff)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid published_after date format")
 
     # Sort pending (unprocessed) episodes before processed ones,
     # then chronologically within each group
@@ -211,6 +221,9 @@ def get_episode(episode_id: int, db: Session = Depends(get_db)):
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
     resp = EpisodeResponse.model_validate(episode)
+    if episode.podcast_id:
+        podcast = db.get(Podcast, episode.podcast_id)
+        resp.podcast_title = podcast.title if podcast else None
     resp.topic_ids = [t.id for t in episode.topics]
     resp.topic_names = [t.name for t in episode.topics]
     return resp

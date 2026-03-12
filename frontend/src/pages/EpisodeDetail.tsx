@@ -6,6 +6,7 @@ import { getEpisode, processEpisode, getTranscript, getAnalysis } from '../api/e
 import { getAllChats } from '../api/qa'
 import ChatBar from '../components/ChatBar'
 import AudioPlayer from '../components/AudioPlayer'
+import TopicPicker from '../components/TopicPicker'
 import type { TranscriptSegment, EpisodeSummary, ChatListItem } from '../types'
 
 function formatDateLabel(dateStr: string): string {
@@ -275,30 +276,25 @@ export default function EpisodeDetail() {
 
   return (
     <div className="pb-32">
-      <h1 className="font-serif font-thin text-zinc-900 mb-8" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>{episode.title}</h1>
+      <h1 className="font-serif font-thin text-zinc-900 mb-2" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>{episode.title}</h1>
+
+      {/* Podcast name */}
+      {episode.podcast_title && (
+        <p className="text-base text-zinc-400 mb-4">{episode.podcast_title}</p>
+      )}
 
       {/* Metadata + Audio player */}
       <div className="flex items-center gap-4 text-[13px] text-zinc-400 mb-8">
         {episode.published_at && (
-          <span className="whitespace-nowrap flex-shrink-0">
+          <span className="whitespace-nowrap flex-shrink-0 leading-8">
             {new Date(episode.published_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
           </span>
         )}
         {episode.duration_seconds && (
-          <span className="whitespace-nowrap flex-shrink-0">{Math.round(episode.duration_seconds / 60)} min</span>
+          <span className="whitespace-nowrap flex-shrink-0 leading-8">{Math.round(episode.duration_seconds / 60)} min</span>
         )}
         <AudioPlayer src={episode.audio_url} durationSeconds={episode.duration_seconds} />
-        {episode.topic_ids?.length > 0 && (
-          <span className="whitespace-nowrap flex-shrink-0">
-            Found in{' '}
-            {episode.topic_ids.map((topicId, i) => (
-              <span key={topicId}>
-                {i > 0 && ', '}
-                <Link to={`/topics/${topicId}`} className="text-zinc-900 hover:underline underline-offset-2">{episode.topic_names[i]}</Link>
-              </span>
-            ))}
-          </span>
-        )}
+        <TopicPicker episodeId={episodeId} currentTopicIds={episode.topic_ids ?? []} label="Episode topic/s" size="md" />
       </div>
 
       {/* Add / Processing status */}
@@ -389,9 +385,6 @@ export default function EpisodeDetail() {
 function AnalysisSection({ episodeId }: { episodeId: number }) {
   return (
     <div className="mt-8">
-      <h2 className="text-xl font-semibold text-zinc-800 mb-3">
-        Summary
-      </h2>
       <AnalysisViewer episodeId={episodeId} />
     </div>
   )

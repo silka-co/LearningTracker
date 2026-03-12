@@ -12,9 +12,11 @@ const TOPIC_COLORS = [
 interface TopicPickerProps {
   episodeId: number
   currentTopicIds: number[]
+  label?: string
+  size?: 'sm' | 'md'
 }
 
-export default function TopicPicker({ episodeId, currentTopicIds }: TopicPickerProps) {
+export default function TopicPicker({ episodeId, currentTopicIds, label = 'Topics', size = 'sm' }: TopicPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -31,6 +33,7 @@ export default function TopicPicker({ episodeId, currentTopicIds }: TopicPickerP
     mutationFn: (topicId: number) => toggleEpisodeTopic(episodeId, topicId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['episodes'] })
+      queryClient.invalidateQueries({ queryKey: ['episode', episodeId] })
       queryClient.invalidateQueries({ queryKey: ['topics'] })
     },
   })
@@ -88,9 +91,9 @@ export default function TopicPicker({ episodeId, currentTopicIds }: TopicPickerP
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
-        className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-900 transition-colors px-2 py-1"
+        className={`flex items-center gap-1.5 ${size === 'md' ? 'text-[13px] leading-8' : 'text-[11px]'} text-zinc-400 hover:text-zinc-900 transition-colors px-2 py-1 whitespace-nowrap`}
       >
-        <span>Topics</span>
+        <span>{label}</span>
         <ChevronDown className="w-3 h-3" />
       </button>
 

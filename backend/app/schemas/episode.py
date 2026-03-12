@@ -18,6 +18,7 @@ class EpisodeResponse(BaseModel):
     audio_file_path: str | None
     error_message: str | None
     created_at: datetime
+    podcast_title: str | None = None
     topic_ids: list[int] = []
     topic_names: list[str] = []
 

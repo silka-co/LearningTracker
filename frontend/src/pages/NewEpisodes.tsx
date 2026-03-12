@@ -19,9 +19,16 @@ export default function NewEpisodes() {
   const [addEpisode, setAddEpisode] = useState<{ id: number; title: string } | null>(null)
   const queryClient = useQueryClient()
 
-  const { data: episodes, isLoading } = useQuery({
-    queryKey: ['episodes', 'all'],
-    queryFn: () => getEpisodes({ limit: 200 }),
+  const thirtyDaysAgo = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString()
+  }, [])
+
+  const { data: newEpisodes, isLoading } = useQuery({
+    queryKey: ['episodes', 'new', thirtyDaysAgo],
+    queryFn: () => getEpisodes({ published_after: thirtyDaysAgo, limit: 200 }),
+    select: (episodes) => episodes.filter((ep) => ep.analysis_status !== 'completed'),
   })
 
   // All completed (added) episodes
@@ -37,22 +44,6 @@ export default function NewEpisodes() {
     },
   })
 
-  const thirtyDaysAgo = useMemo(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 30)
-    return d
-  }, [])
-
-  // Unprocessed episodes from the last 30 days
-  const newEpisodes = useMemo(() =>
-    episodes?.filter((ep) => {
-      if (!ep.published_at) return false
-      if (new Date(ep.published_at) < thirtyDaysAgo) return false
-      return ep.analysis_status !== 'completed'
-    }),
-    [episodes, thirtyDaysAgo]
-  )
-
   return (
     <div>
       <h1 className="font-serif font-thin text-zinc-900 mb-2" style={{ fontSize: '67px', letterSpacing: '-2.7px', lineHeight: 1.05 }}>
@@ -64,7 +55,7 @@ export default function NewEpisodes() {
 
       {/* New episodes to add */}
       <section className="mb-10">
-        <h2 className="text-xl font-semibold text-zinc-800 mb-4">Select episode to dig into</h2>
+        <h2 className="text-xl font-semibold text-zinc-800 mb-4">Add episodes to dig into</h2>
         {isLoading ? (
           <p className="text-zinc-400 text-sm">Loading...</p>
         ) : !newEpisodes?.length ? (

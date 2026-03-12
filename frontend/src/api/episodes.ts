@@ -7,6 +7,7 @@ export async function getEpisodes(params?: {
   has_topic?: boolean
   audio_status?: string
   analysis_status?: string
+  published_after?: string
   trashed?: boolean
   limit?: number
   offset?: number
